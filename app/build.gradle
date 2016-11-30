@@ -1,0 +1,62 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.1"
+    defaultConfig {
+        applicationId "bunny.bugtest"
+        minSdkVersion 19
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++11 -frtti -fexceptions"
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.0.1'
+    testCompile 'junit:junit:4.12'
+}
+
+// Location of where to store the jni wrapped files
+def coreWrapperDir = new File("${projectDir}/src/main/java/bunny/bugtest/wrapper")
+
+task createCoreWrapperDir {
+    coreWrapperDir.mkdirs()
+}
+
+// For this to work, it's assumed SWIG is installed
+// TODO: This only works when called from Command Line (gradlew runSwig)
+task runSwig(type: Exec, dependsOn: ['createCoreWrapperDir']) {
+
+    String osName = System.getProperty("os.name").toLowerCase();
+    if (osName.contains("windows")) {
+        workingDir '/src/main/cpp'   // This implicitly starts from $(projectDir) evidently
+        commandLine 'cmd', '/c', 'swig'
+        args '-Wall', '-c++', '-java', '-package', 'eu.sycomore.gmmv2.ircode01.wrapper', '-outdir', coreWrapperDir.absolutePath, 'Pipo.i'
+    } else {
+        commandLine 'swig'
+        args '-Wall', '-c++', '-java', '-package', 'eu.sycomore.gmmv2.ircode01.wrapper', '-outdir', coreWrapperDir.absolutePath, "${projectDir}/src/main/cpp/Pipo.i"
+    }
+}
+
